@@ -55,9 +55,32 @@ public:
 class ReversiMinicandidatesPlayer : ReversiPlayer {
 private:
 	Mark mark;
+	uint depth;
+
+	int CalcActionWorth(const ReversiBoard board, Mark mark, int depth) pure const {
+		if (depth == 0) {
+			return cast(int)(board.size*board.size - board.ListupPuttables(-mark).length);
+		}
+		auto puttables = board.ListupPuttables(mark);
+		if (puttables.length == 0) {
+			return (board.size*board.size);
+		}
+		int maxworth = -10000;
+		Position[] candidates = [];
+		foreach (at; puttables) {
+			auto newBoard = board.PutAt(at.x, at.y, mark);
+			auto worth = -CalcActionWorth(newBoard, -mark, depth-1);
+			if (worth > maxworth) {
+				maxworth = worth;
+			}
+		}
+		return maxworth;
+	}
+
 public:
-	this(Mark mark) pure nothrow @safe {
+	this(Mark mark, uint depth) pure nothrow @safe {
 		this.mark = mark;
+		this.depth = depth;
 	}
 	void SetMark(Mark) pure nothrow @safe {
 		this.mark = mark;
@@ -72,13 +95,16 @@ public:
 		if (puttables.length == 0) {
 			return NextAction.Pass();
 		}
-		ulong minv = board.size * board.size;
+		int maxworth = -10000; 
 		Position[] candidates = [];
 		foreach (at; puttables) {
 			auto newBoard = board.PutAt(at.x, at.y, mark);
-			auto enemyPuttables = newBoard.ListupPuttables(-mark);
-			if (enemyPuttables.length <= minv) {
-				minv = enemyPuttables.length;
+			auto worth = -CalcActionWorth(newBoard, -mark, depth);
+			if (worth > maxworth) {
+				maxworth = worth;
+				candidates = [at];
+			}
+			else if (worth == maxworth) {
 				candidates ~= at;
 			}
 		}
@@ -348,8 +374,8 @@ void main()
 	import core.thread : Thread;
 	import core.time : dur;
 
-	ReversiPlayer player1 = new ReversiMinicandidatesPlayer(Mark.BLACK);
-	ReversiPlayer player2 = new ReversiMinicandidatesPlayer(Mark.WHITE);
+	ReversiPlayer player1 = new ReversiMinicandidatesPlayer(Mark.BLACK, 2);
+	ReversiPlayer player2 = new ReversiMinicandidatesPlayer(Mark.WHITE, 1);
 
 	auto game = new ReversiManager(player1, player2);
 	while (! game.GetBoard().IsGameEnd()) {
