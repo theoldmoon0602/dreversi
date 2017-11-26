@@ -66,7 +66,7 @@ public:
 	import std.stdio;
 	import players;
 	void main() {
-		auto client = new ReversiClient(new ReversiRandomPlayer(Mark.BLACK));
+		auto client = new ReversiClient(new ReversiMinicandidatesPlayer(Mark.BLACK, 5));
 		while (client.IsRunning()) {
 			string input = readln();
 			client.RecvMessage(input);

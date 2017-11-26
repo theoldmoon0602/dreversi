@@ -39,7 +39,7 @@ public:
 		this.mark = mark;
 		this.depth = depth;
 	}
-	void SetMark(Mark) pure nothrow @safe {
+	void SetMark(Mark mark) pure nothrow @safe {
 		this.mark = mark;
 	}
 	Mark GetMark() pure nothrow const @safe {

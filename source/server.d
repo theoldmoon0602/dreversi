@@ -12,11 +12,7 @@ mixin template Loggerable() {
 		void SetLogger(Logger logger) @safe {
 			this.logger = logger;
 		}
-		void info(string msg) @safe {
-			if (logger !is null) {
-				logger.info(msg);
-			}
-		}
+		alias info = defaultLogFunction!(LogLevel.info);
 	}
 }
 
@@ -130,8 +126,8 @@ public:
 
 		this.info("Handshaking...");
 		// handshake
-		foreach (i; 0..2) {
-			send(tids[i], MakeStartMsg(players[i].GetMark()));
+		foreach (i, tid; tids) {
+			send(tid, MakeStartMsg(players[i].GetMark()));
 			bool timeout = true;
 			bool ok = false;
 			receiveTimeout(dur!"seconds"(TIMEOUT),
@@ -207,8 +203,8 @@ public:
 			}
 			game.Next();
 		}
-		catch(Exception) {
-			this.info("Not puttable at ...");
+		catch(Exception e) {
+			this.info(e.msg);
 			winplayerIndex = (turnPlayerIndex+1)%2;
 			ServerExit();
 			return;

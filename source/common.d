@@ -106,7 +106,7 @@ public:
 		import std.conv : to;
 
 		char[] buf = [];
-		buf ~= "v".repeat(10).join("") ~ "\n";
+		buf ~= "v01234567v\n";
 		for (int y = 0; y < this.size; y++) {
 			buf ~= "|";
 			for (int x = 0; x < this.size; x++) {
@@ -120,7 +120,7 @@ public:
 					buf ~= "-";
 				}
 			}
-			buf ~= "|\n";
+			buf ~= y.to!string~"\n";
 		}
 		buf ~= "^".repeat(10).join("") ~ "\n";
 
@@ -172,7 +172,7 @@ public:
 		import std.format : format;
 		auto revs = ReversesWhenPut(x, y, mark);
 		if (revs.length == 0) {
-			throw new Exception("Position(%d, %d) is not puttable".format(x,y));
+			throw new Exception("Position(%d, %d) is not puttable for %s".format(x,y, mark));
 		}
 		ReversiBoard copy = new ReversiBoard(this.board);
 		copy.board[x][y] = mark;
