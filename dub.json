@@ -1,0 +1,9 @@
+{
+	"name": "reversi",
+	"authors": [
+		"theoldmoon0602"
+	],
+	"description": "basic reversi",
+	"copyright": "Copyright © 2017, theoldmoon0602",
+	"license": "MIT"
+}
