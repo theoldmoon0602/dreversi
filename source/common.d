@@ -1,4 +1,3 @@
-import std.conv : to;
 
 enum Mark : int {
 	BLACK = 1,
@@ -52,140 +51,11 @@ public:
 }
 
 
-class ReversiMinicandidatesPlayer : ReversiPlayer {
-private:
-	Mark mark;
-	uint depth;
-
-	int CalcActionWorth(const ReversiBoard board, Mark mark, int depth) pure const {
-		if (depth == 0) {
-			return cast(int)(board.size*board.size - board.ListupPuttables(-mark).length);
-		}
-		auto puttables = board.ListupPuttables(mark);
-		if (puttables.length == 0) {
-			return (board.size*board.size);
-		}
-		int maxworth = -10000;
-		Position[] candidates = [];
-		foreach (at; puttables) {
-			auto newBoard = board.PutAt(at.x, at.y, mark);
-			auto worth = -CalcActionWorth(newBoard, -mark, depth-1);
-			if (worth > maxworth) {
-				maxworth = worth;
-			}
-		}
-		return maxworth;
-	}
-
-public:
-	this(Mark mark, uint depth) pure nothrow @safe {
-		this.mark = mark;
-		this.depth = depth;
-	}
-	void SetMark(Mark) pure nothrow @safe {
-		this.mark = mark;
-	}
-	Mark GetMark() pure nothrow const @safe {
-		return this.mark;
-	}
-
-	NextAction GetNextAction(const ReversiBoard board) pure const {
-		import std.random : choice;
-		auto puttables = board.ListupPuttables(mark);
-		if (puttables.length == 0) {
-			return NextAction.Pass();
-		}
-		int maxworth = -10000; 
-		Position[] candidates = [];
-		foreach (at; puttables) {
-			auto newBoard = board.PutAt(at.x, at.y, mark);
-			auto worth = -CalcActionWorth(newBoard, -mark, depth);
-			if (worth > maxworth) {
-				maxworth = worth;
-				candidates = [at];
-			}
-			else if (worth == maxworth) {
-				candidates ~= at;
-			}
-		}
-		if (candidates.length == 0) {
-			throw new Exception("WHY JAPANESE PEOPLE!!!!");
-		}
-		return NextAction.PutAt(choice(candidates));
-	}
-}
-
-class ReversiRandomPlayer : ReversiPlayer {
-private:
-	Mark mark;
-public:
-	this(Mark mark) pure nothrow @safe {
-		this.mark = mark;
-	}
-	void SetMark(Mark mark) pure nothrow @safe {
-		this.mark = mark;
-	}
-	Mark GetMark() pure const nothrow @safe {
-		return this.mark;
-	}
-	NextAction GetNextAction(const ReversiBoard board) pure const {
-		import std.random : choice;
-		auto puttables = board.ListupPuttables(mark);
-		if (puttables.length == 0) {
-			return NextAction.Pass();
-		}
-		return NextAction.PutAt(choice(puttables));
-	}
-
-}
-
-class ReversiManager {
-private:
-	ReversiBoard board;
-	ReversiPlayer[] players;
-	int turn;
-	int turnPlayerIndex;
-
-	ReversiPlayer GetTurnPlayer() pure @safe {
-		return players[turnPlayerIndex];
-	}
-public:
-	this(ReversiPlayer player1, ReversiPlayer player2) pure @safe {
-		this.board = new ReversiBoard();
-		if (player1 is null) {
-			throw new Exception("Player1 is null");
-		}
-		if (player2 is null) {
-			throw new Exception("Player2 is null");
-		}
-		this.players = [player1, player2];
-		this.turn = 0;
-		this.turnPlayerIndex = 0;
-	}
-	void GoNextTurn() pure @safe {
-		this.turn ++;
-		this.turnPlayerIndex = (this.turnPlayerIndex+1)%2;
-	}
-	void Next() pure {
-		auto nextAction = GetTurnPlayer().GetNextAction(this.board);
-		if (! nextAction.IsPass()) {
-			auto putAt = nextAction.GetPutAt();
-			this.board = board.PutAt(putAt.x, putAt.y, GetTurnPlayer().GetMark());
-		}
-		if (! this.board.IsGameEnd()) {
-			GoNextTurn();
-		}
-	}
-	ReversiBoard GetBoard() pure nothrow @safe {
-		return this.board;
-	}
-}
-
 class ReversiBoard {
 private:
 	Mark[][] board;
-	const int size = 8;
 public:
+	const int size = 8;
 	this() pure nothrow @safe {
 		this.board = new Mark[][](size,size);
 		for (int x = 0; x < size; x++) {
@@ -199,7 +69,16 @@ public:
 		this.board[4][4] = Mark.BLACK;
 	}
 	this(const(Mark[][]) board) pure nothrow @safe {
+		import std.conv : to;
 		this.board = board.to!(Mark[][]); // copy 
+	}
+	this(int[] board) pure nothrow @safe {
+		this.board = new Mark[][](size,size);
+		for (int x = 0; x < size; x++) {
+			for (int y = 0; y < size; y++) {
+				this.board[x][y] = cast(Mark)board[x*8+y];
+			}
+		}
 	}
 
 	/// return specific position status of board
@@ -210,10 +89,21 @@ public:
 		return Mark.INVALID;
 	}
 
+	int[] IntArray() pure nothrow const @safe {
+		int[] xs = [];
+		for (int x = 0; x < this.size; x++) {
+			for (int y = 0; y < this.size; y++) {
+				xs ~= this.At(x,y);
+			}
+		}
+		return xs;
+	}
+
 	/// return string expression of board status
 	string String() pure nothrow const @safe {
 		import std.range : repeat;
 		import std.array : join;
+		import std.conv : to;
 
 		char[] buf = [];
 		buf ~= "v".repeat(10).join("") ~ "\n";
@@ -368,27 +258,47 @@ public:
 	}
 }
 
-void main()
-{
-	import std.stdio : write, writeln;
-	import core.thread : Thread;
-	import core.time : dur;
+class ReversiManager {
+private:
+	ReversiBoard board;
+	ReversiPlayer[] players;
+	int turn;
+	int turnPlayerIndex;
 
-	ReversiPlayer player1 = new ReversiMinicandidatesPlayer(Mark.BLACK, 2);
-	ReversiPlayer player2 = new ReversiMinicandidatesPlayer(Mark.WHITE, 1);
-
-	auto game = new ReversiManager(player1, player2);
-	while (! game.GetBoard().IsGameEnd()) {
-		write("\033[2J");
-		write(game.GetBoard().String());
-		game.Next();
-
-		Thread.sleep(dur!("msecs")(100));
+	ReversiPlayer GetTurnPlayer() pure @safe {
+		return players[turnPlayerIndex];
 	}
-	write("\033[2J");
-	write(game.GetBoard().String());
-
-	writeln("BLACK: ", game.GetBoard().Count(Mark.BLACK));
-	writeln("WHITE: ", game.GetBoard().Count(Mark.WHITE));
-
+public:
+	this(ReversiPlayer player1, ReversiPlayer player2) pure @safe {
+		this.board = new ReversiBoard();
+		if (player1 is null) {
+			throw new Exception("Player1 is null");
+		}
+		if (player2 is null) {
+			throw new Exception("Player2 is null");
+		}
+		this.players = [player1, player2];
+		this.turn = 0;
+		this.turnPlayerIndex = 0;
+	}
+	int GetTurn() pure const nothrow @safe{
+		return this.turn;
+	}
+	void GoNextTurn() pure @safe {
+		this.turn ++;
+		this.turnPlayerIndex = (this.turnPlayerIndex+1)%2;
+	}
+	void Next() pure {
+		auto nextAction = GetTurnPlayer().GetNextAction(this.board);
+		if (! nextAction.IsPass()) {
+			auto putAt = nextAction.GetPutAt();
+			this.board = board.PutAt(putAt.x, putAt.y, GetTurnPlayer().GetMark());
+		}
+		if (! this.board.IsGameEnd()) {
+			GoNextTurn();
+		}
+	}
+	ReversiBoard GetBoard() pure nothrow @safe {
+		return this.board;
+	}
 }

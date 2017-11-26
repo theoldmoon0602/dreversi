@@ -5,5 +5,22 @@
 	],
 	"description": "basic reversi",
 	"copyright": "Copyright © 2017, theoldmoon0602",
-	"license": "MIT"
+	"license": "MIT",
+	"configurations": [
+		{
+			"name": "server",
+			"targetType": "executable",
+			"targetName": "reversi-server",
+			"mainSourceFile": "source/server.d",
+			"excludedSourceFiles": [ "source/client*" ]
+		},
+		{
+			"name": "client",
+			"targetType": "executable",
+			"targetName": "reversi-client",
+			"mainSourceFile": "source/client.d",
+			"excludedSourceFiles": [ "source/server*" ]
+		}
+	]
+
 }
